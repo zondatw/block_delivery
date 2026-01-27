@@ -14,4 +14,11 @@ pub mod block_delivery {
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         initialize::handler(ctx)
     }
+
+    pub fn create_order(
+        ctx: Context<CreateOrder>,
+        amount: u64,
+    ) -> Result<()> {
+        instructions::create_order::handler(ctx, amount)
+    }
 }
