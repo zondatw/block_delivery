@@ -3,6 +3,7 @@ use anchor_lang::prelude::*;
 #[account]
 pub struct Order {
     pub customer: Pubkey,
+    pub order_id: u64,
     pub courier: Option<Pubkey>,
     pub amount: u64,
     pub status: OrderStatus,
