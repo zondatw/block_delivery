@@ -7,7 +7,7 @@ pub struct CreateOrder<'info> {
     #[account(
         init,
         payer = customer,
-        space = 8 + 32 + 8 + 33 + 8 + 1 + 1,
+        space = 8 + Order::INIT_SPACE,
         seeds = [
             b"order",
             customer.key().as_ref(),
@@ -36,6 +36,8 @@ pub fn handler(
     order.amount = amount;
     order.status = OrderStatus::Created;
     order.bump = ctx.bumps.order;
+
+    msg!("Order {} created", order_id);
 
     emit!(OrderCreated {
         order: order.key(),

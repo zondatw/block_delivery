@@ -18,3 +18,12 @@ pub enum OrderStatus {
     Delivered,
     Cancelled,
 }
+
+impl Order {
+    pub const INIT_SPACE: usize =
+        32 + // customer
+        8 + // order_id
+        1 + 32 + // courier (Option)
+        8 + // amount
+        1; // status enum
+}
