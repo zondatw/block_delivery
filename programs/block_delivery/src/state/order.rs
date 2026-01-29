@@ -25,5 +25,6 @@ impl Order {
         8 + // order_id
         1 + 32 + // courier (Option)
         8 + // amount
-        1; // status enum
+        1 + // status enum
+        16; // padding
 }

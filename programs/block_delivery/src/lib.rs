@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 
 pub mod instructions;
 pub mod state;
+pub mod error;
 
 use instructions::*;
 
@@ -21,5 +22,9 @@ pub mod block_delivery {
         amount: u64,
     ) -> Result<()> {
         instructions::create_order::handler(ctx, order_id, amount)
+    }
+
+    pub fn accept_order(ctx: Context<AcceptOrder>) -> Result<()> {
+        instructions::accept_order::handler(ctx)
     }
 }

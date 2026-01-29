@@ -11,7 +11,7 @@ describe("block_delivery", () => {
 
   it("Create order", async () => {
     const customer = provider.wallet;
-    const orderId = new anchor.BN(1);
+    const orderId = new anchor.BN(Date.now());
     const amount = new anchor.BN(1_000_000) // 1 USDC (6 decimals)
 
     const [orderPda] = anchor.web3.PublicKey.findProgramAddressSync(
