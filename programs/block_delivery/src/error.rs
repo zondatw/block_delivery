@@ -10,4 +10,10 @@ pub enum OrderError {
 
     #[msg("Customer cannot accept own order")]
     CannotAcceptOwnOrder,
+
+    #[msg("Order is not accepted yet")]
+    OrderNotAccepted,
+
+    #[msg("Only the assigned courier can complete this order")]
+    UnauthorizedCourier,
 }

@@ -27,4 +27,8 @@ pub mod block_delivery {
     pub fn accept_order(ctx: Context<AcceptOrder>) -> Result<()> {
         instructions::accept_order::handler(ctx)
     }
+
+    pub fn complete_order(ctx: Context<CompleteOrder>) -> Result<()> {
+        instructions::complete_order::handler(ctx)
+    }
 }
