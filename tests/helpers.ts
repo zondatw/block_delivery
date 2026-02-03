@@ -20,7 +20,6 @@ export async function getCounterPda(
 
 export async function createOrder(
   program: Program<BlockDelivery>,
-  provider: anchor.AnchorProvider,
   customer: anchor.Wallet,
   amount: anchor.BN
 ): Promise<{ orderPda: anchor.web3.PublicKey; orderId: number }> {

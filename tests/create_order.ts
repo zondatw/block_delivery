@@ -19,7 +19,7 @@ describe("create_order", () => {
     await airdrop(provider, customer.publicKey);
 
     // 使用 helper 創建 order
-    const { orderPda, orderId } = await createOrder(program, provider, customer, amount);
+    const { orderPda, orderId } = await createOrder(program, customer, amount);
 
     console.log("Order PDA:", orderPda.toBase58());
 

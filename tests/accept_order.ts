@@ -23,7 +23,7 @@ describe("accept order", () => {
     const amount = new anchor.BN(1_000_000);
 
     // ---- Create first order ----
-    const { orderPda, orderId } = await createOrder(program, provider, customer, amount);
+    const { orderPda, orderId } = await createOrder(program, customer, amount);
 
     // ---- accept order ----
     await acceptOrder(program, orderPda, courier);
@@ -60,7 +60,7 @@ describe("accept order", () => {
     console.log("same order again passed");
 
     // ---- failure: customer tries to accept own order ----
-    const { orderPda: newOrderPda } = await createOrder(program, provider, customer, amount);
+    const { orderPda: newOrderPda } = await createOrder(program, customer, amount);
 
     try {
       await program.methods
