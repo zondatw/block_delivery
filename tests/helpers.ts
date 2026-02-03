@@ -7,25 +7,40 @@ export async function airdrop(provider: anchor.AnchorProvider, pubkey: anchor.we
   await provider.connection.confirmTransaction(sig);
 }
 
-export async function createOrder(
-  program: Program<BlockDelivery>,
-  provider: anchor.AnchorProvider,
-  customer: anchor.Wallet,
-  amount: anchor.BN
-): Promise<anchor.web3.PublicKey> {
+export async function getCounterPda(
+  program: Program<BlockDelivery>
+): Promise<{ counterPda: anchor.web3.PublicKey; }> {
   const [counterPda] = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("order_counter")],
     program.programId
   );
 
-  const counterAccount = await program.account.orderCounter.fetch(counterPda);
-  const orderId = new anchor.BN(counterAccount.nextId);
+  return {counterPda};
+}
 
+export async function createOrder(
+  program: Program<BlockDelivery>,
+  provider: anchor.AnchorProvider,
+  customer: anchor.Wallet,
+  amount: anchor.BN
+): Promise<{ orderPda: anchor.web3.PublicKey; orderId: number }> {
+  // 1️⃣ derive counter PDA
+  const {counterPda} = await getCounterPda(program);
+
+  // 2️⃣ fetch counter to get nextId
+  const counterAccount = await program.account.orderCounter.fetch(counterPda);
+  const orderId = counterAccount.nextId;
+
+  // 3️⃣ derive order PDA using same seeds as contract
   const [orderPda] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from("order"), orderId.toArrayLike(Buffer, "le", 8)],
+    [
+      Buffer.from("order"),
+      new anchor.BN(orderId).toArrayLike(Buffer, "le", 8),
+    ],
     program.programId
   );
 
+  // 4️⃣ call createOrder
   await program.methods
     .createOrder(amount)
     .accounts({
@@ -36,7 +51,7 @@ export async function createOrder(
     })
     .rpc();
 
-  return orderPda;
+  return { orderPda, orderId };
 }
 
 export async function acceptOrder(

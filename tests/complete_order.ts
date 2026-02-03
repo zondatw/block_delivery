@@ -30,7 +30,7 @@ describe("complete_order (clean)", () => {
   // -----------------------
 
   it("Courier completes the order successfully", async () => {
-    const orderPda = await createOrder(program, provider, customer, amount);
+    const { orderPda, orderId } = await createOrder(program, provider, customer, amount);
     await acceptOrder(program, orderPda, courier);
 
     await program.methods
@@ -49,7 +49,7 @@ describe("complete_order (clean)", () => {
   });
 
   it("Courier cannot complete the same order twice", async () => {
-    const orderPda = await createOrder(program, provider, customer, amount);
+    const { orderPda, orderId } = await createOrder(program, provider, customer, amount);
     await acceptOrder(program, orderPda, courier);
 
     await program.methods
@@ -78,7 +78,7 @@ describe("complete_order (clean)", () => {
   });
 
   it("Non-assigned courier cannot complete the order", async () => {
-    const orderPda = await createOrder(program, provider, customer, amount);
+    const { orderPda, orderId } = await createOrder(program, provider, customer, amount);
     await acceptOrder(program, orderPda, courier);
 
     try {
@@ -98,7 +98,7 @@ describe("complete_order (clean)", () => {
   });
 
   it("Customer cannot complete the order", async () => {
-    const orderPda = await createOrder(program, provider, customer, amount);
+    const { orderPda, orderId } = await createOrder(program, provider, customer, amount);
     await acceptOrder(program, orderPda, courier);
 
     try {
@@ -117,7 +117,7 @@ describe("complete_order (clean)", () => {
   });
 
   it("Cannot complete order before accept", async () => {
-    const orderPda = await createOrder(program, provider, customer, amount);
+    const { orderPda, orderId } = await createOrder(program, provider, customer, amount);
 
     try {
       await program.methods
