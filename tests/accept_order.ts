@@ -5,7 +5,7 @@ import { expect } from "chai";
 
 import { airdrop, createOrder, acceptOrder, getCounterPda } from "./helpers";
 
-describe("accept_order", () => {
+describe("accept order", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 

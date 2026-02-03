@@ -5,7 +5,7 @@ import assert from "assert";
 
 import { airdrop, createOrder, acceptOrder } from "./helpers";
 
-describe("complete_order (clean)", () => {
+describe("complete order", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
