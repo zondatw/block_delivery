@@ -8,7 +8,6 @@ pub struct CompleteOrder<'info> {
         mut,
         seeds = [
             b"order",
-            order.customer.as_ref(),
             order.order_id.to_le_bytes().as_ref(),
         ],
         bump = order.bump,

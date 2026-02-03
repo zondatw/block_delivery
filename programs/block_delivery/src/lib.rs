@@ -18,10 +18,9 @@ pub mod block_delivery {
 
     pub fn create_order(
         ctx: Context<CreateOrder>,
-        order_id: u64,
         amount: u64,
     ) -> Result<()> {
-        instructions::create_order::handler(ctx, order_id, amount)
+        instructions::create_order::handler(ctx, amount)
     }
 
     pub fn accept_order(ctx: Context<AcceptOrder>) -> Result<()> {

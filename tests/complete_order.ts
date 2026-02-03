@@ -3,7 +3,7 @@ import { Program } from "@coral-xyz/anchor";
 import { BlockDelivery } from "../target/types/block_delivery";
 import assert from "assert";
 
-describe("complete_order (clean)", () => {
+describe("complete_order", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
@@ -26,19 +26,38 @@ describe("complete_order (clean)", () => {
     await provider.connection.confirmTransaction(sig);
   }
 
-  async function createOrder(orderId: anchor.BN) {
-    const [orderPda] = anchor.web3.PublicKey.findProgramAddressSync(
+  async function createOrder() {
+    const customer = provider.wallet;
+    const amount = new anchor.BN(1_000_000) // 1 USDC (6 decimals)
+
+    const [counterPda] = anchor.web3.PublicKey.findProgramAddressSync(
       [
-        Buffer.from("order"),
-        customer.publicKey.toBuffer(),
-        orderId.toArrayLike(Buffer, "le", 8),
+        Buffer.from("order_counter"),
       ],
       program.programId
     );
 
-    await program.methods
-      .createOrder(orderId, amount)
+
+    const counterAccount = await program.account.orderCounter.fetch(
+      counterPda
+    );
+
+    const orderId = counterAccount.nextId;
+
+    const [orderPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("order"),
+        new anchor.BN(orderId).toArrayLike(Buffer, "le", 8),
+      ],
+      program.programId
+    );
+
+    const tx = await program.methods
+      .createOrder(
+        amount,
+      )
       .accountsPartial({
+        counter: counterPda,
         order: orderPda,
         customer: customer.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -72,8 +91,7 @@ describe("complete_order (clean)", () => {
   // -----------------------
 
   it("Courier completes the order successfully", async () => {
-    const orderId = new anchor.BN(Date.now());
-    const orderPda = await createOrder(orderId);
+    const orderPda = await createOrder();
     await acceptOrder(orderPda);
 
     await program.methods
@@ -90,8 +108,7 @@ describe("complete_order (clean)", () => {
   });
 
   it("Courier cannot complete the same order twice", async () => {
-    const orderId = new anchor.BN(Date.now());
-    const orderPda = await createOrder(orderId);
+    const orderPda = await createOrder();
     await acceptOrder(orderPda);
 
     await program.methods
@@ -123,8 +140,7 @@ describe("complete_order (clean)", () => {
   });
 
   it("Non-assigned courier cannot complete the order", async () => {
-    const orderId = new anchor.BN(Date.now());
-    const orderPda = await createOrder(orderId);
+    const orderPda = await createOrder();
     await acceptOrder(orderPda);
 
     try {
@@ -147,8 +163,7 @@ describe("complete_order (clean)", () => {
   });
 
   it("Customer cannot complete the order", async () => {
-    const orderId = new anchor.BN(Date.now());
-    const orderPda = await createOrder(orderId);
+    const orderPda = await createOrder();
     await acceptOrder(orderPda);
 
     try {
@@ -172,8 +187,7 @@ describe("complete_order (clean)", () => {
   });
 
   it("Cannot complete order before accept", async () => {
-    const orderId = new anchor.BN(Date.now());
-    const orderPda = await createOrder(orderId);
+    const orderPda = await createOrder();
 
     try {
       await program.methods

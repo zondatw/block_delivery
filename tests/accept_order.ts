@@ -1,17 +1,18 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { BlockDelivery } from "../target/types/block_delivery";
-import assert from "assert";
+import { expect } from "chai";
 
 describe("accept_order", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
 
-  const program = anchor.workspace
-    .BlockDelivery as Program<BlockDelivery>;
+  const program = anchor.workspace.BlockDelivery as Program<BlockDelivery>;
 
-  it("Courier accepts an order", async () => {
+  it("Courier can accept an order and handle failure cases", async () => {
     const customer = provider.wallet;
+
+    // 新 courier
     const courier = anchor.web3.Keypair.generate();
 
     // 1️⃣ Airdrop SOL to courier
@@ -21,22 +22,37 @@ describe("accept_order", () => {
     );
     await provider.connection.confirmTransaction(sig);
 
-    const orderId = new anchor.BN(Date.now());
     const amount = new anchor.BN(1_000_000);
 
-    // 2️⃣ Create the order first
-    const [orderPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    // ---- Create order ----
+    const [counterPda] = anchor.web3.PublicKey.findProgramAddressSync(
       [
-        Buffer.from("order"),
-        customer.publicKey.toBuffer(),
-        orderId.toArrayLike(Buffer, "le", 8),
+        Buffer.from("order_counter"),
       ],
       program.programId
     );
 
-    await program.methods
-      .createOrder(orderId, amount)
+
+    const counterAccount = await program.account.orderCounter.fetch(
+      counterPda
+    );
+
+    const orderId = counterAccount.nextId;
+
+    const [orderPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("order"),
+        new anchor.BN(orderId).toArrayLike(Buffer, "le", 8),
+      ],
+      program.programId
+    );
+
+    const tx = await program.methods
+      .createOrder(
+        amount,
+      )
       .accountsPartial({
+        counter: counterPda,
         order: orderPda,
         customer: customer.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -45,77 +61,76 @@ describe("accept_order", () => {
 
     console.log("Order created for accept test:", orderPda.toBase58());
 
-    // 3️⃣ Call accept_order
-    const tx = await program.methods
+    // ---- accept order ----
+    const accept_tx = await program.methods
       .acceptOrder()
-      .accountsPartial({
+      .accounts({
         order: orderPda,
         courier: courier.publicKey,
       })
       .signers([courier])
       .rpc();
 
-    console.log("Accept order tx:", tx);
+    console.log("Accept order tx:", accept_tx);
 
-    // 4️⃣ Fetch order account
+    // ---- fetch order and assert ----
     const orderAccount = await program.account.order.fetch(orderPda);
     console.log("Order status:", orderAccount.status);
     console.log("Courier:", orderAccount.courier?.toBase58());
 
 
-    // Try accepting should fail
+    // ✅ status should be Accepted
+    const statusKey = Object.keys(orderAccount.status)[0];
+    expect(statusKey).to.equal("accepted");
+
+    // ✅ courier should be set
+    expect(orderAccount.courier).to.not.be.null;
+    expect(orderAccount.courier?.toBase58()).to.equal(courier.publicKey.toBase58());
+
+    // ---- failure: accept same order again ----
     try {
       await program.methods
         .acceptOrder()
-        .accountsPartial({
+        .accounts({
           order: orderPda,
-          courier: courier.publicKey,
+          courier: courier.publicKey
         })
         .signers([courier])
         .rpc();
-      assert.fail("Should have failed because order status is not Created");
+      expect.fail("Should not allow accepting already accepted order");
     } catch (err: any) {
-      const errMsg = "OrderNotOpen";
-      assert.ok(err.toString().includes(errMsg), `Expected ${errMsg}, got ${err}`);
+      expect(err.toString()).to.include("OrderNotOpen");
     }
-  });
 
-  it("Customer cannot accept their own order", async () => {
-    const customer = provider.wallet;
-    const orderId = new anchor.BN(Date.now());
-    const amount = new anchor.BN(1_000_000);
+    const orderIdBN = new anchor.BN(counterAccount.nextId);
+    const nextOrderIdBN = orderIdBN.add(new anchor.BN(1));
 
-    const [orderPda] = anchor.web3.PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("order"),
-        customer.publicKey.toBuffer(),
-        orderId.toArrayLike(Buffer, "le", 8),
-      ],
+    const [newOrderPda] = anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("order"), nextOrderIdBN.toArrayLike(Buffer, "le", 8)],
       program.programId
     );
 
     await program.methods
-      .createOrder(orderId, amount)
-      .accountsPartial({
-        order: orderPda,
+      .createOrder(amount)
+      .accounts({
+        counter: counterPda,
+        order: newOrderPda,
         customer: customer.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
+        systemProgram: anchor.web3.SystemProgram.programId
       })
       .rpc();
 
-    // Customer tries to accept own order
     try {
       await program.methods
         .acceptOrder()
-        .accountsPartial({
-          order: orderPda,
-          courier: customer.publicKey,
+        .accounts({
+          order: newOrderPda,
+          courier: customer.publicKey
         })
         .rpc();
-      assert.fail("Customer should not be able to accept own order");
+      expect.fail("Customer should not accept own order");
     } catch (err: any) {
-      const errMsg = "CannotAcceptOwnOrder";
-      assert.ok(err.toString().includes(errMsg), `Expected ${errMsg}, got ${err}`);
+      expect(err.toString()).to.include("CannotAcceptOwnOrder");
     }
   });
 });

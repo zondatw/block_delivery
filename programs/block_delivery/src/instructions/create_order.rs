@@ -2,16 +2,21 @@ use anchor_lang::prelude::*;
 use crate::state::*;
 
 #[derive(Accounts)]
-#[instruction(order_id: u64)]
 pub struct CreateOrder<'info> {
+    #[account(
+        mut,
+        seeds = [b"order_counter"],
+        bump
+    )]
+    pub counter: Account<'info, OrderCounter>,
+
     #[account(
         init,
         payer = customer,
         space = 8 + Order::INIT_SPACE,
         seeds = [
             b"order",
-            customer.key().as_ref(),
-            order_id.to_le_bytes().as_ref(),
+            counter.next_id.to_le_bytes().as_ref(),
         ],
         bump
     )]
@@ -25,9 +30,10 @@ pub struct CreateOrder<'info> {
 
 pub fn handler(
     ctx: Context<CreateOrder>,
-    order_id: u64,
     amount: u64,
 ) -> Result<()> {
+    let counter = &mut ctx.accounts.counter;
+    let order_id = counter.next_id;
     let order = &mut ctx.accounts.order;
 
     order.customer = ctx.accounts.customer.key();
@@ -36,6 +42,8 @@ pub fn handler(
     order.amount = amount;
     order.status = OrderStatus::Created;
     order.bump = ctx.bumps.order;
+
+    counter.next_id += 1;
 
     msg!("Order {} created", order_id);
 
