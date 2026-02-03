@@ -14,9 +14,9 @@ pub struct Order {
 pub enum OrderStatus {
     Created,
     Accepted,
-    PickedUp,
+    // PickedUp,
     Delivered,
-    Cancelled,
+    // Cancelled,
 }
 
 impl Order {
